@@ -1,55 +1,44 @@
-# 🛰️ External Mod Manager: Road to Vostok
+# External Mod Manager: Road to Vostok
 
-An advanced, lightweight GUI built with **AutoHotkey v2** for seamless mod management in *Road to Vostok*. Specifically designed to manage `mod_config.cfg` for the **Metro Mod Loader**.
+![Version](https://img.shields.io/badge/version-1.1-blue)
+![License](https://img.shields.io/badge/license-MIT-green)
+![Platform](https://img.shields.io/badge/platform-Windows-lightgrey)
 
-<p align="center">
-  <img width="940" src="https://github.com/user-attachments/assets/3ae148fe-2e51-4c13-b757-8545ec6263b1" alt="SMM RTV Screenshot" />
-</p>
-
----
-
-### ✨ Key Features
-
-#### 🛠️ Mod Management
-* **Auto-Detection:** Instantly scans the `\mods` directory for new content.
-* **Smart Sorting:** Custom engine for sorting by **size (B/KB/MB/GB)** and modification date.
-* **Power Context Menu:** Right-click to open files, locate in Explorer, or delete mods permanently.
-
-#### ⚖️ Priority & Control
-* **Load Order:** Granular priority control (**-100 to 100**) with **mouse wheel support**.
-* **Bulk Actions:** One-click to toggle all mods or reset all priorities to zero.
-* **Profiles:** Export and Import `.cfg` profiles to switch between different mod builds instantly.
-
-#### 🧹 Optimization & Launch
-* **Cache Cleaner:** Purge game logs, mounting cache, and **Shader Cache (DX/Vulkan)**.
-* **Smart Launch:** Detects Steam automatically to launch via URI or falls back to direct `.exe`.
-* **Conflict Prevention:** Ensures configuration files remain engine-compliant (UTF-8-RAW).
-
-#### 🎨 Modern UI/UX
-* **Native Dark Mode:** Deep integration with Windows 10/11 Dark Theme API.
-* **Responsive Design:** Fully resizable window with adaptive layout.
-* **Bilingual:** Instant toggle between **English** and **Russian** 🌐.
+A lightweight, high-performance external mod manager for **Road to Vostok**, built with AutoHotkey v2. This tool provides a clean UI to manage your mod library, load orders, and game settings without touching configuration files manually.
 
 ---
 
-### 🚀 Installation & Usage
+## ✨ Key Features
 
-1.  **Placement:** Move the executable (or script) into your main **Road to Vostok** game folder.
-2.  **Requirement:** Ensure [Metro Mod Loader](https://modworkshop.net/mod/55623) is installed.
-3.  **Run:** Open the manager, configure your load order, and hit **Launch Game**.
+* **🗂️ Profile Management** – Create, rename, and switch between multiple mod profiles for different playstyles or testing.
+* **⚖️ Load Order Control** – Easily adjust mod priority (double-click to edit) and toggle specific mods on/off.
+* **🚀 One-Click Launch** – Integrated launcher supporting both Steam and standalone versions with custom modloader arguments.
+* **🧹 Cache Cleanup** – Built-in utility to clear logs, shader caches, and temporary files to improve stability.
+* **🎨 Modern UI** – Dark-themed interface with responsive layout, tooltips, and real-time mod statistics.
+* **⚡ Bulk Actions** – Quickly toggle all mods or reset priorities to default values.
+
+---
+
+## 🛠️ Installation & Usage
+
+1.  **Placement:** Place the executable (or script) directly into your **Road to Vostok** game folder (the one containing `RTV.exe`).
+2.  **Requirement:** Ensure you have the [Mod Loader (modloader.gd)](https://modworkshop.net/mod/55623) installed.
+3.  **Run:** Launch the manager. It will automatically detect your mods and create a config file in your AppData folder.
+4.  **Configure:** Enable your desired mods, set their priority, and click **Save Config**.
+5.  **Play:** Use the **LAUNCH GAME** button to start your session.
 
 ---
 
-### ⚙️ Technical Details
+## ⚙️ Technical Details
 
-| Feature | Specification |
-| :--- | :--- |
-| **Language** | AutoHotkey v2.0 |
-| **Framework** | Object-Oriented Win32 GUI |
-| **Encoding** | UTF-8-RAW (Engine Compatible) |
-| **OS Support** | Windows 10 / 11 |
+* **Language:** AutoHotkey v2.0
+* **Config Path:** `%AppData%\Road to Vostok\mod_config.cfg`
+* **OS Support:** Windows 10/11 (supports DWM Dark Mode)
+* **Game Version:** Compatible with current Road to Vostok public builds.
 
 ---
-<p align="center">
-  <i>Developed for the Road to Vostok community.</i>
-</p>
+
+## 🗒️ Notes
+
+- The manager checks for `RTV.exe` and `modloader.gd` on startup to ensure proper functionality.
+- You can toggle the **Ingame Mod UI** via a checkbox directly in the manager.
