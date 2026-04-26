@@ -1,3 +1,5 @@
+<img width="782" height="539" alt="SCREENSHOT ui" src="https://github.com/user-attachments/assets/9ab218dd-c8e0-4034-88ca-83f19011e1dc" />
+
 # External Mod Manager: Road to Vostok
 
 ![Version](https://img.shields.io/badge/version-1.1-blue)
