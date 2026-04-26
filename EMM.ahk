@@ -1,491 +1,310 @@
 #Requires AutoHotkey v2.0
 #SingleInstance Force
+#NoTrayIcon
 
-; --- 0. Локализация ---
-global CurrentLang := (A_Language = "0419") ? "RU" : "EN"
-
-global Lang := Map(
-    "RU", Map(
-        "Title", "External Mod Manager: Road to Vostok",
-        "ErrorPath", "Поместите мод менеджер в папку с игрой",
-        "ML_NotFound", "Metro Mod Loader не обнаружен, работа приложения будет прекращена.",
-        "ML_HowTo", "Как установить Modloader по кнопке ниже.",
-        "ML_BtnInstall", "Инструкция по установке",
-        "ML_BtnExit", "Закрыть приложение",
-        "ColStatus", "Статус", "ColMod", "Мод", "ColPrio", "Приор.", "ColDate", "Изменен", "ColSize", "Размер",
-        "ModOn", "Вкл", "ModOff", "Выкл",
-        "Open", "Открыть файл", "ShowInFolder", "Показать в папке", "DeleteMod", "Удалить мод",
-        "PrioLabel", "Приоритет (-100...100):",
-        "MassActions", "Массовые действия:",
-        "BtnToggle", "Вкл/Выкл все", "BtnReset", "Сбросить приор.", "BtnClear", "Очистка кэша",
-        "Profiles", "Профили модов:",
-        "Export", "Экспорт", "Import", "Импорт",
-        "Save", "Сохранить", "Launch", "Запустить игру",
-        "Total", "Всего модов: ", "Enabled", " | Включено: ",
-        "CacheClean", "Кэш очищен.", "CacheNone", "Временные файлы не найдены.",
-        "DelConfirm", "Удалить файл мода навсегда?",
-        "Bytes", ["Б", "КБ", "МБ", "ГБ"],
-        "TT_Prio", "Выберите мод из списка, затем введите желаемый приоритет (можно скроллить колесиком мыши)",
-        "TT_Toggle", "Активировать / Деактивировать ВСЕ моды",
-        "TT_Reset", "Установить приоритет на 0 для всех модов",
-        "TT_Clear", "Удалить временные файлы (Кэш модов, логи, кэш шейдеров DX, VK)",
-        "TT_Export", "Экспорт текущей конфигурации модов",
-        "TT_Import", "Импорт конфигурации модов",
-        "TT_Save", "Применить изменения конфигурации модов",
-        "TT_Launch", "Запуск игры через Steam (если запущен) или напрямую (no-steam)"
-    ),
-    "EN", Map(
-        "Title", "External Mod Manager: Road to Vostok",
-        "ErrorPath", "Place the mod manager in the game folder",
-        "ML_NotFound", "Metro Mod Loader not found. Application will be closed.",
-        "ML_HowTo", "Check the installation guide via the button below.",
-        "ML_BtnInstall", "Installation Guide",
-        "ML_BtnExit", "Close Application",
-        "ColStatus", "Status", "ColMod", "Mod", "ColPrio", "Prio.", "ColDate", "Modified", "ColSize", "Size",
-        "ModOn", "On", "ModOff", "Off",
-        "Open", "Open file", "ShowInFolder", "Show in folder", "DeleteMod", "Delete mod",
-        "PrioLabel", "Priority (-100...100):",
-        "MassActions", "Mass actions:",
-        "BtnToggle", "Toggle All", "BtnReset", "Reset Prio", "BtnClear", "Clear Cache",
-        "Profiles", "Mod Profiles:",
-        "Export", "Export", "Import", "Import",
-        "Save", "Save", "Launch", "Launch Game",
-        "Total", "Total mods: ", "Enabled", " | Enabled: ",
-        "CacheClean", "Cache cleared.", "CacheNone", "Temporary files not found.",
-        "DelConfirm", "Delete mod file permanently?",
-        "Bytes", ["B", "KB", "MB", "GB"],
-        "TT_Prio", "Select a mod from the list, then enter the desired priority (mouse wheel scrolling supported)",
-        "TT_Toggle", "Enable / Disable ALL mods",
-        "TT_Reset", "Set priority to 0 for all mods",
-        "TT_Clear", "Delete temporary files (Mod cache, logs, DX/VK shader cache)",
-        "TT_Export", "Export current mod configuration",
-        "TT_Import", "Import mod configuration",
-        "TT_Save", "Apply mod configuration changes",
-        "TT_Launch", "Launch via Steam (if running) or directly (no-steam)"
-    )
-)
-
-L(key) => Lang[CurrentLang][key]
-
-; --- 1. Инициализация и Проверка Modloader ---
-global AppDataFolder := A_AppData "\Road to Vostok"
-global ModLoaderFile := AppDataFolder "\modloader.gd"
-
-if !FileExist(ModLoaderFile) {
-    MLGui := Gui("+AlwaysOnTop -MinimizeBox", "Modloader Required")
-    MLGui.BackColor := "1A1A1A"
-    MLGui.SetFont("s11 cWhite", "Segoe UI")
-    MLGui.Add("Text", "Center w350", L("ML_NotFound") "`n`n" L("ML_HowTo"))
-    BtnInst := MLGui.Add("Button", "w350 h40", L("ML_BtnInstall"))
-    BtnInst.OnEvent("Click", (*) => Run("https://modworkshop.net/mod/55623"))
-    BtnExit := MLGui.Add("Button", "w350 h40", L("ML_BtnExit"))
-    BtnExit.OnEvent("Click", (*) => ExitApp())
-    MLGui.Show()
-    WinWaitClose(MLGui)
-    ExitApp()
-}
-
-if !FileExist(A_ScriptDir "\RTV.exe") && !DirExist(A_ScriptDir "\mods") {
-    MsgBox(L("ErrorPath"), "Error", "Iconx")
-    ExitApp()
-}
-
+global AppDataFolder := EnvGet("APPDATA") "\Road to Vostok"
 global ConfigPath    := AppDataFolder "\mod_config.cfg"
-global SMMFolder      := AppDataFolder "\SMM"
-global ModsFolder     := A_ScriptDir "\mods" 
-global Buttons        := []
-global Tooltips       := Map() 
-global PendingToolTipText := ""
-
-global Color_BG      := "1A1A1A"
+global Color_BG      := "1E1E1E"
 global Color_Btn     := "333333"
 global Color_Hover    := "444444"
 global Color_Text     := "FFFFFF"
+global Buttons        := []
+global RightPanel     := [] 
 
-for folder in [SMMFolder, ModsFolder] {
-    if !DirExist(folder) {
-        DirCreate(folder)
-    }
+if !FileExist(A_ScriptDir "\RTV.exe") {
+    MsgBox("Error: RTV.exe not found.`n`nPlease place the manager in the game folder.", "Error", "IconX")
+    ExitApp()
 }
 
-; --- 2. Интерфейс ---
-MainGui := Gui("+ReSize", L("Title"))
-MainGui.BackColor := "0x" Color_BG
+if !FileExist(A_ScriptDir "\modloader.gd") {
+    Result := MsgBox("Mod loader (modloader.gd) not detected.`n`nGo to download page?", "File Not Found", "YesNo Icon?")
+    if (Result = "Yes")
+        Run("https://modworkshop.net/mod/55623")
+    ExitApp()
+}
 
-if VerCompare(A_OSVersion, "10.0.17763") >= 0 {
+if !DirExist(AppDataFolder)
+    DirCreate(AppDataFolder)
+
+MainGui := Gui("+Resize -DPIScale", "External Mod Manager: Road to Vostok v1.1")
+MainGui.BackColor := Color_BG
+MainGui.SetFont("c" Color_Text " s10", "Segoe UI")
+
+if VerCompare(A_OSVersion, "10.0.17763") >= 0
     DllCall("dwmapi\DwmSetWindowAttribute", "Ptr", MainGui.Hwnd, "Int", 20, "Int*", 1, "Int", 4)
-}
 
-MainGui.SetFont("s18 w600 c" Color_Text, "Segoe UI Variable Display")
-HeaderTitle := MainGui.Add("Text", "x20 y20", "External Mod Manager: RTV")
+global LV := MainGui.Add("ListView", "x15 y15 w550 h440 +Grid -Multi +Checked Background" Color_Btn " c" Color_Text, ["", "Mod Name", "Version", "Priority"])
+LV.OnEvent("DoubleClick", EditPriority)
+LV.OnEvent("ItemCheck", (*) => UpdateCounts())
+LV.OnEvent("ColClick", LV_SortByCheck) 
+DllCall("uxtheme\SetWindowTheme", "Ptr", LV.Hwnd, "Str", "Explorer", "Ptr", 0)
 
-MainGui.SetFont("s12 w600")
-LangBtn := MainGui.Add("Text", "x410 y25 w60 h30 Background" Color_Btn " cWhite +0x201 +ReadOnly", "🌐 " CurrentLang)
-LangBtn.OnEvent("Click", ToggleLanguage)
-LangBtn.DefineProp("IsHovered", {Value: false})
-Buttons.Push(LangBtn)
+global StatusText := MainGui.Add("Text", "x15 y460 w550", "Total Mods: 0 | Enabled: 0")
+xCol := 580 
 
-MainGui.SetFont("s10 w400 c" Color_Text, "Segoe UI")
-; Добавлена 6-я колонка (скрытая) для точного размера в байтах для сортировки
-LV := MainGui.Add("ListView", "x20 y80 w460 h380 Background" Color_Btn " c" Color_Text " +Grid -Multi Checked +ReadOnly", [L("ColStatus"), L("ColMod"), L("ColPrio"), L("ColDate"), L("ColSize"), "SizeBytes"])
-LV.OnEvent("ItemCheck", (thisLV, item, checked) => (thisLV.Modify(item, , checked ? L("ModOn") : L("ModOff")), UpdateCounts()))
-LV.OnEvent("ItemSelect", (thisLV, item, selected) => selected && (val := thisLV.GetText(item, 3), IsNumber(val) ? PrioUpDown.Value := val : 0))
-LV.OnEvent("ContextMenu", (thisLV, item, *) => item && (thisLV.Modify(item, "Select Focus"), ModMenu.Show()))
-; Перехват клика по заголовку для кастомной сортировки
-LV.OnEvent("ColClick", LV_ColClick)
+RightPanel.Push(MainGui.Add("Text", "x" xCol " y18 w180", "Profiles:")) 
+global ProfileDDL := MainGui.Add("DropDownList", "x" xCol " y45 w180 Background" Color_Btn " cWhite")
+ProfileDDL.OnEvent("Change", (*) => LoadProfileData())
+RightPanel.Push(ProfileDDL) 
 
-ModMenu := Menu()
-UpdateMenu()
+RightPanel.Push(CreateBtn("+", "x" xCol " y80 w55", CreateProfile)) 
+RightPanel.Push(CreateBtn("✎", "x" xCol + 62 " y80 w56", RenameProfile)) 
+RightPanel.Push(CreateBtn("✘", "x" xCol + 125 " y80 w55", DeleteProfile)) 
 
-PrioLabel    := MainGui.Add("Text", "x500 y80", L("PrioLabel"))
-PrioEdit     := MainGui.Add("Edit", "x500 y105 w60 h28 Background" Color_Btn " +Number")
-PrioUpDown   := MainGui.Add("UpDown", "Range-100-100", 0)
-PrioEdit.OnEvent("Change", OnPrioChange)
+RightPanel.Push(CreateBtn("Save Config", "x" xCol " y120 w180", (*) => SaveProfileData())) 
+RightPanel.Push(MainGui.Add("Text", "x" xCol " y170 w180 h2 0x10")) 
+RightPanel.Push(MainGui.Add("Text", "x" xCol " y185 w180", "Bulk Actions:")) 
+RightPanel.Push(CreateBtn("Toggle All", "x" xCol " y210 w180", ToggleAllMods)) 
+RightPanel.Push(CreateBtn("Reset Priority", "x" xCol " y245 w180", ResetAllPriority)) 
+RightPanel.Push(CreateBtn("Clear Cache", "x" xCol " y280 w180", ClearCache)) 
 
-ActionLabel   := MainGui.Add("Text", "x500 y150", L("MassActions"))
-ToggleAllBtn  := CreateBtn(L("BtnToggle"), "x500 y175 w150", ToggleAllMods)
-ResetPrioBtn  := CreateBtn(L("BtnReset"), "x500 y215 w150", ResetAllPriority)
-ClearCacheBtn := CreateBtn(L("BtnClear"), "x500 y255 w150", ClearCache)
+global CB_IngameUI := MainGui.Add("Checkbox", "x" xCol " y340 w180 cWhite", "Ingame Mod UI")
+global LaunchBtn := CreateBtn("LAUNCH GAME", "x" xCol " y370 w180 h50", LaunchGame)
 
-ProfileLabel  := MainGui.Add("Text", "x500 y310", L("Profiles"))
-ExportBtn     := CreateBtn(L("Export"), "x500 y335 w70", ExportProfile)
-ImportBtn     := CreateBtn(L("Import"), "x579 y335 w71", ImportProfile)
+MainGui.OnEvent("Size", MainGui_Size) 
+OnMessage(0x0200, OnMouseMove)
+LoadProfiles()
+MainGui.Show("w780 h500")
 
-SaveBtn        := CreateBtn(L("Save"), "x500 y385 w150", SaveConfig)
-LaunchBtn      := CreateBtn(L("Launch"), "x500 y425 w150", LaunchGame)
-
-MainGui.SetFont("s10 w600")
-StatusText     := MainGui.Add("Text", "x25 y465 w450", "...")
-
-UpdateTooltips()
-MainGui.OnEvent("Size", MainGui_Size)
-MainGui.OnEvent("Close", (*) => ExitApp())
-
-OnMessage(0x0200, OnMouseMove) 
-OnMessage(0x020A, WM_MOUSEWHEEL)
-
-LoadConfig()
-MainGui.Show("w750 h515")
-
-; --- 3. Функции ---
-
-; Функция для правильной сортировки при клике на колонку "Размер"
-LV_ColClick(thisLV, colIndex) {
-    if (colIndex = 5) { ; Индекс колонки "Размер"
-        static rev := false
-        rev := !rev
-        thisLV.ModifyCol(6, "Sort" (rev ? "Desc" : "") " Integer") ; Сортируем по скрытой 6-й колонке
-        return 
-    }
-}
-
-UpdateTooltips() {
-    global Tooltips
-    Tooltips := Map(
-        PrioEdit.Hwnd, L("TT_Prio"),
-        PrioUpDown.Hwnd, L("TT_Prio"),
-        ToggleAllBtn.Hwnd, L("TT_Toggle"),
-        ResetPrioBtn.Hwnd, L("TT_Reset"),
-        ClearCacheBtn.Hwnd, L("TT_Clear"),
-        ExportBtn.Hwnd, L("TT_Export"),
-        ImportBtn.Hwnd, L("TT_Import"),
-        SaveBtn.Hwnd, L("TT_Save"),
-        LaunchBtn.Hwnd, L("TT_Launch")
-    )
-}
-
-UpdateMenu() {
-    ModMenu.Delete()
-    ModMenu.Add(L("Open"), (*) => (row := LV.GetNext(), row && (p := ModsFolder "\" LV.GetText(row, 2), FileExist(p) && Run('"' p '"'))))
-    ModMenu.Add(L("ShowInFolder"), (*) => (row := LV.GetNext(), row && (p := ModsFolder "\" LV.GetText(row, 2), FileExist(p) && Run('explorer.exe /select,"' p '"'))))
-    ModMenu.Add()
-    ModMenu.Add(L("DeleteMod"), Menu_DeleteMod)
-}
-
-ToggleLanguage(*) {
-    global CurrentLang := (CurrentLang = "RU") ? "EN" : "RU"
-    LangBtn.Text := "🌐 " CurrentLang
-    MainGui.Title := L("Title")
-    PrioLabel.Text := L("PrioLabel")
-    ActionLabel.Text := L("MassActions")
-    ToggleAllBtn.Text := L("BtnToggle")
-    ResetPrioBtn.Text := L("BtnReset")
-    ClearCacheBtn.Text := L("BtnClear")
-    ProfileLabel.Text := L("Profiles")
-    ExportBtn.Text := L("Export")
-    ImportBtn.Text := L("Import")
-    SaveBtn.Text := L("Save")
-    LaunchBtn.Text := L("Launch")
-    
-    LV.ModifyCol(1, , L("ColStatus")), LV.ModifyCol(2, , L("ColMod")), LV.ModifyCol(3, , L("ColPrio")), LV.ModifyCol(4, , L("ColDate")), LV.ModifyCol(5, , L("ColSize"))
-    
-    LV.Opt("-Redraw")
-    Loop LV.GetCount() {
-        isChecked := (LV.GetNext(A_Index - 1, "Checked") = A_Index)
-        LV.Modify(A_Index, "Col1", isChecked ? L("ModOn") : L("ModOff"))
-    }
-    LV.Opt("+Redraw")
-    
-    UpdateMenu()
-    UpdateTooltips()
-    UpdateCounts()
-}
-
-OnPrioChange(*) {
-    static isProcessing := false
-    if (isProcessing || !(row := LV.GetNext())) {
+MainGui_Size(GuiObj, WindowMinMax, Width, Height) {
+    if (WindowMinMax = -1)
         return
-    }
-    isProcessing := true
-    val := Clamp(Number(PrioEdit.Value || 0), -100, 100)
-    if (PrioEdit.Value != val) {
-        PrioEdit.Value := val
-    }
-    LV.Modify(row, "Col3", String(val))
-    isProcessing := false
-}
-
-Clamp(val, min, max) => (val < min ? min : (val > max ? max : val))
-
-WM_MOUSEWHEEL(wParam, lParam, msg, hwnd) {
-    if (hwnd = PrioEdit.Hwnd || hwnd = PrioUpDown.Hwnd) {
-        step := (wParam >> 16 > 0x7FFF) ? -1 : 1
-        PrioUpDown.Value := Clamp(PrioUpDown.Value + step, -100, 100)
-        OnPrioChange()
-        return 0
-    }
-}
-
-LoadConfig(customPath := "") {
-    path := customPath ? customPath : ConfigPath
-    LV.Delete()
-    FileOrder := [], FileContent := Map()
-
-    if FileExist(path) {
-        content := FileRead(path, "UTF-8"), section := ""
-        loop parse, content, "`n", "`r" {
-            line := Trim(A_LoopField)
-            if (line = "" || SubStr(line, 1, 1) = ";") {
-                continue 
-            }
-            if (SubStr(line, 1, 1) = "[") {
-                section := InStr(line, "enabled") ? "enabled" : (InStr(line, "priority") ? "priority" : "")
-                continue 
-            }
-            if (section && InStr(line, "=")) {
-                parts := StrSplit(line, "=",, 2)
-                name := Trim(parts[1], ' "'), val := Trim(parts[2])
-                if !FileContent.Has(name) {
-                    FileContent[name] := {enabled: "false", priority: "0"}
-                    FileOrder.Push(name)
-                }
-                FileContent[name].%section% := val
-            }
-        }
-    }
-
-    loop files, ModsFolder "\*.*" {
-        if !FileContent.Has(A_LoopFileName) {
-            FileContent[A_LoopFileName] := {enabled: "false", priority: "0"}
-            FileOrder.Push(A_LoopFileName)
-        }
-    }
-
-    LV.Opt("-Redraw")
-    for name in FileOrder {
-        fPath := ModsFolder "\" name
-        if FileExist(fPath) {
-            info := FileContent[name]
-            rawSize := FileGetSize(fPath)
-            szStr := FormatBytes(rawSize)
-            dtStr := FormatTime(FileGetTime(fPath, "M"), "dd.MM.yyyy HH:mm")
-            ; Добавляем rawSize в 6-ю колонку
-            LV.Add((info.enabled = "true" ? "Check" : ""), (info.enabled = "true" ? L("ModOn") : L("ModOff")), name, info.priority, dtStr, szStr, rawSize)
-        }
-    }
-    Loop 5 {
-        LV.ModifyCol(A_Index, "AutoHdr")
-    }
-    LV.ModifyCol(6, 0) ; Скрываем колонку с байтами
-    LV.Opt("+Redraw")
-    UpdateCounts()
-}
-
-FormatBytes(n) {
-    u := L("Bytes"), i := 1, n := Float(n)
-    while (n >= 1024 && i < u.Length) {
-        n /= 1024
-        i++
-    }
-    return Round(n, 1) " " u[i]
-}
-
-UpdateCounts() {
-    total := LV.GetCount(), enabled := 0
-    loop total {
-        if (LV.GetNext(A_Index - 1, "Checked") = A_Index) {
-            enabled++
-        }
-    }
-    StatusText.Value := L("Total") total L("Enabled") enabled
-}
-
-ToggleAllMods(*) {
-    static allChecked := false
-    allChecked := !allChecked
-    st := allChecked ? "Check" : "-Check"
-    txt := allChecked ? L("ModOn") : L("ModOff")
-    LV.Opt("-Redraw")
-    loop LV.GetCount() {
-        LV.Modify(A_Index, st, txt)
-    }
-    LV.Opt("+Redraw")
-    UpdateCounts()
-}
-
-ResetAllPriority(*) {
-    LV.Opt("-Redraw")
-    loop LV.GetCount() {
-        LV.Modify(A_Index, "Col3", "0") 
-    }
-    LV.Opt("+Redraw")
-    PrioUpDown.Value := 0
-}
-
-ClearCache(*) {
-    targets := ["logs", "vmz_mount_cache", "shader_cache", "vulkan"], count := 0
-    for folder in targets {
-        p := AppDataFolder "\" folder
-        if DirExist(p) {
-            try {
-                DirDelete(p, 1)
-                count++
-            }
-        }
-    }
-    if FileExist(f := AppDataFolder "\modloader_conflicts.txt") {
-        FileDelete(f)
-        count++
-    }
-    MsgBox(count > 0 ? L("CacheClean") : L("CacheNone"), "Info", "Iconi T2")
-}
-
-GenerateCurrentConfig() {
-    t1 := "[enabled]`r`n", t2 := "`r`n[priority]`r`n"
-    loop LV.GetCount() {
-        name := LV.GetText(A_Index, 2), prio := LV.GetText(A_Index, 3)
-        isChecked := (LV.GetNext(A_Index - 1, "Checked") = A_Index)
-        enabledVal := isChecked ? "true" : "false"
-        lineKey := (InStr(name, " ") ? '"' name '"' : name) "="
-        t1 .= lineKey enabledVal "`r`n", t2 .= lineKey prio "`r`n"
-    }
-    return t1 t2
-}
-
-SaveConfig(*) {
-    try {
-        if !DirExist(AppDataFolder) {
-            DirCreate(AppDataFolder)
-        }
-        if FileExist(ConfigPath) {
-            FileDelete(ConfigPath)
-        }
-        FileAppend(GenerateCurrentConfig(), ConfigPath, "UTF-8-RAW")
-        return true
-    } catch Error as e {
-        MsgBox("Error: " e.Message)
-        return false
+    lvW := Width - 230
+    lvH := Height - 60 
+    LV.Move(,, lvW, lvH)
+    LV.GetPos(&lvX, &lvY, &lvW, &lvH)
+    lvBottom := lvY + lvH
+    StatusText.Move(15, lvBottom + 5, lvW)
+    LV.ModifyCol(2, Max(100, lvW - 220))
+    newX := Width - 200
+    panelW := 180
+    LaunchBtn.Move(newX, lvBottom - 50, panelW, 50)
+    CB_IngameUI.Move(newX, lvBottom - 80, panelW)
+    for i, ctrl in RightPanel {
+        if (i == 3)      
+            ctrl.Move(newX)
+        else if (i == 4) 
+            ctrl.Move(newX + 62)
+        else if (i == 5) 
+            ctrl.Move(newX + 125)
+        else              
+            ctrl.Move(newX, , panelW)
     }
 }
 
 LaunchGame(*) {
-    if !SaveConfig() {
+    SaveProfileData()
+    params := (CB_IngameUI.Value == 0) ? " -- --modloader-restart" : ""
+    if (ProcessExist("steam.exe"))
+        Run("steam://run/1963610//" params)
+    else if (FileExist(A_ScriptDir "\RTV.exe"))
+        Run('"' A_ScriptDir '\RTV.exe"' params)
+}
+
+SaveProfileData(*) {
+    Selected := ProfileDDL.Text
+    if (Selected == "")
         return
+    IniWrite('"' Selected '"', ConfigPath, "settings", "active_profile")
+    IniWrite(CB_IngameUI.Value, ConfigPath, "settings", "ingame_ui")
+    try {
+        IniDelete(ConfigPath, "profile." Selected ".enabled")
+        IniDelete(ConfigPath, "profile." Selected ".priority")
     }
-    if ProcessExist("steam.exe") {
-        Run("steam://rungameid/1963610")
-    } else if FileExist(A_ScriptDir "\RTV.exe") {
-        Run('"' A_ScriptDir '\RTV.exe"')
+    Loop LV.GetCount() {
+        IsChecked := (SendMessage(0x102C, A_Index-1, 0xF000, LV.Hwnd) >> 12 == 2)
+        Status := IsChecked ? "true" : "false"
+        ModName := LV.GetText(A_Index, 2), ModVer := LV.GetText(A_Index, 3), Pri := LV.GetText(A_Index, 4)
+        FullMod := ModName (ModVer ? "@" ModVer : "")
+        IniWrite(Status, ConfigPath, "profile." Selected ".enabled", FullMod)
+        IniWrite(Pri, ConfigPath, "profile." Selected ".priority", FullMod)
     }
+    UpdateCounts()
 }
 
-ExportProfile(*) {
-    if (f := FileSelect("S16", SMMFolder "\profile.cfg", L("Export"), "Config (*.cfg)")) {
-        FileOpen(f, "w", "UTF-8-RAW").Write(GenerateCurrentConfig())
-    }
-}
-
-ImportProfile(*) {
-    if (f := FileSelect(3, SMMFolder, L("Import"), "Config (*.cfg)")) {
-        LoadConfig(f)
-    }
-}
-
-Menu_DeleteMod(*) {
-    if !(row := LV.GetNext()) {
+LoadProfiles() {
+    ProfileDDL.Delete()
+    if (!FileExist(ConfigPath))
         return
-    }
-    modName := LV.GetText(row, 2)
-    if MsgBox(L("DelConfirm") "`n`n" modName, "Confirm", "YesNo Icon!") = "Yes" {
-        try {
-            FileDelete(ModsFolder "\" modName)
-            LV.Delete(row)
-            UpdateCounts()
+    try {
+        CB_IngameUI.Value := IniRead(ConfigPath, "settings", "ingame_ui", "1")
+        Sections := IniRead(ConfigPath), Profiles := []
+        CurrentActive := StrReplace(IniRead(ConfigPath, "settings", "active_profile", ""), '"', "")
+        Loop Parse, Sections, "`n", "`r"
+            if RegExMatch(A_LoopField, "i)^profile\.(.+)\.enabled$", &Match)
+                Profiles.Push(Match[1])
+        if (Profiles.Length > 0) {
+            ProfileDDL.Add(Profiles)
+            ChosenIndex := 1
+            for i, name in Profiles
+                if (name = CurrentActive) {
+                    ChosenIndex := i
+                    break
+                }
+            ProfileDDL.Choose(ChosenIndex), LoadProfileData()
         }
     }
 }
 
-MainGui_Size(thisGui, minMax, width, height) {
-    if (minMax == -1) {
+LoadProfileData() {
+    LV.Delete()
+    Selected := ProfileDDL.Text
+    if (Selected == "" || !FileExist(ConfigPath))
+        return
+    try {
+        EnabledData := IniRead(ConfigPath, "profile." Selected ".enabled")
+        PriorityData := IniRead(ConfigPath, "profile." Selected ".priority")
+    } catch {
+        UpdateCounts()
         return
     }
-    panelX := width - 180, newLVW := width - 220, newLVH := height - 135
-    LV.Move(,, newLVW, newLVH)
-    for ctrl in [PrioLabel, PrioEdit, ActionLabel, ToggleAllBtn, ResetPrioBtn, ClearCacheBtn, ProfileLabel, ExportBtn] {
-        ctrl.Move(panelX)
+    Priorities := Map()
+    Loop Parse, PriorityData, "`n", "`r"
+        if (Parts := StrSplit(A_LoopField, "=")).Length == 2
+            Priorities[Parts[1]] := Parts[2]
+    LV.Opt("-Redraw")
+    Loop Parse, EnabledData, "`n", "`r" {
+        if (Parts := StrSplit(A_LoopField, "=")).Length == 2 {
+            FullMod := Parts[1], Status := Parts[2]
+            RegExMatch(FullMod, "^(.*)@(.*)$", &Match) ? (ModName := Match[1], ModVer := Match[2]) : (ModName := FullMod, ModVer := "")
+            Pri := Priorities.Has(FullMod) ? Priorities[FullMod] : "0"
+            LV.Add((Status = "true" ? "Check" : ""), "", ModName, ModVer, Pri)
+        }
     }
-    PrioUpDown.Move(panelX + 60), ImportBtn.Move(panelX + 79)
-    SaveBtn.Move(panelX, height - 130), LaunchBtn.Move(panelX, height - 90)
-    StatusText.Move(25, height - 35, newLVW)
-    LangBtn.Move(width - 85) 
-    LV.ModifyCol(1, 65), LV.ModifyCol(3, 60), LV.ModifyCol(4, 120), LV.ModifyCol(5, 70), LV.ModifyCol(6, 0)
-    LV.ModifyCol(2, Max(100, newLVW - 325)) 
+    LV.ModifyCol(1, 30), LV.ModifyCol(2, 250), LV.ModifyCol(3, 100), LV.ModifyCol(4, 80)
+    LV.Opt("+Redraw"), UpdateCounts()
+}
+
+LV_SortByCheck(GuiCtrl, ColIndex) {
+    if (ColIndex == 1) { 
+        static Reverse := false
+        Reverse := !Reverse, GuiCtrl.Opt("-Redraw"), Rows := []
+        Loop GuiCtrl.GetCount() {
+            IsChecked := (SendMessage(0x102C, A_Index-1, 0xF000, GuiCtrl.Hwnd) >> 12 == 2)
+            Rows.Push({Checked: IsChecked, Name: GuiCtrl.GetText(A_Index, 2), Ver: GuiCtrl.GetText(A_Index, 3), Pri: GuiCtrl.GetText(A_Index, 4)})
+        }
+        Loop Rows.Length {
+            i := A_Index
+            Loop Rows.Length - i {
+                j := A_Index
+                Condition := Reverse ? (Rows[j].Checked < Rows[j+1].Checked) : (Rows[j].Checked > Rows[j+1].Checked)
+                if (Condition)
+                    Temp := Rows[j], Rows[j] := Rows[j+1], Rows[j+1] := Temp
+            }
+        }
+        GuiCtrl.Delete()
+        for row in Rows
+            GuiCtrl.Add((row.Checked ? "Check" : ""), "", row.Name, row.Ver, row.Pri)
+        GuiCtrl.ModifyCol(1, 30), GuiCtrl.ModifyCol(2, 250), GuiCtrl.ModifyCol(3, 100), GuiCtrl.ModifyCol(4, 80)
+        GuiCtrl.Opt("+Redraw"), UpdateCounts()
+    }
+}
+
+CreateProfile(*) {
+    res := CustomInput("New Profile", "Enter profile name:")
+    if (res.Status = "Cancel" || res.Value = "")
+        return
+    ProfileDDL.Add([res.Value]), ProfileDDL.Choose(res.Value), SaveProfileData()
+}
+
+RenameProfile(*) {
+    oldProf := ProfileDDL.Text
+    if (oldProf = "")
+        return
+    res := CustomInput("Rename", "New name:", oldProf)
+    if (res.Status = "Cancel" || res.Value = "" || res.Value = oldProf)
+        return
+    try {
+        enData := IniRead(ConfigPath, "profile." oldProf ".enabled"), prData := IniRead(ConfigPath, "profile." oldProf ".priority")
+        IniWrite(enData, ConfigPath, "profile." res.Value ".enabled"), IniWrite(prData, ConfigPath, "profile." res.Value ".priority")
+        IniDelete(ConfigPath, "profile." oldProf ".enabled"), IniDelete(ConfigPath, "profile." oldProf ".priority")
+        LoadProfiles(), ProfileDDL.Choose(res.Value)
+    }
+}
+
+DeleteProfile(*) {
+    current := ProfileDDL.Text
+    if (current = "" || MsgBox("Delete profile?", "Confirm", "YesNo") = "No")
+        return
+    IniDelete(ConfigPath, "profile." current ".enabled"), IniDelete(ConfigPath, "profile." current ".priority"), LoadProfiles()
+}
+
+EditPriority(GuiCtrl, RowNum) {
+    if (!RowNum)
+        return
+    ModName := GuiCtrl.GetText(RowNum, 2), Pri := GuiCtrl.GetText(RowNum, 4)
+    res := CustomInput("Priority", "Priority for " ModName, Pri)
+    if (res.Status = "OK")
+        GuiCtrl.Modify(RowNum, "Col4", res.Value)
+}
+
+CustomInput(Title, Prompt, DefaultValue := "") {
+    InputGui := Gui("+ToolWindow +Owner" MainGui.Hwnd, Title)
+    InputGui.BackColor := Color_BG
+    InputGui.SetFont("cWhite s10", "Segoe UI")
+    InputGui.Add("Text", "w250", Prompt)
+    EditCtrl := InputGui.Add("Edit", "w250 Background333333 cWhite", DefaultValue)
+    Result := {Value: "", Status: "Cancel"}
+    BtnOk := InputGui.Add("Button", "w120 Default", "OK")
+    BtnOk.OnEvent("Click", (*) => (Result.Value := EditCtrl.Value, Result.Status := "OK", InputGui.Destroy()))
+    BtnCn := InputGui.Add("Button", "x+10 w120", "Cancel")
+    BtnCn.OnEvent("Click", (*) => (InputGui.Destroy()))
+    InputGui.Show("Center"), WinWaitClose(InputGui)
+    return Result
 }
 
 CreateBtn(txt, pos, cb) {
-    b := MainGui.Add("Text", pos " h35 Background" Color_Btn " cWhite +0x201 +ReadOnly", txt)
-    b.OnEvent("Click", cb)
-    b.DefineProp("IsHovered", {Value: false}) 
-    Buttons.Push(b)
+    actualPos := InStr(pos, " h") ? pos : pos " h28"
+    b := MainGui.Add("Text", actualPos " Background" Color_Btn " cWhite +0x201 +ReadOnly", txt)
+    b.OnEvent("Click", cb), b.DefineProp("IsHovered", {Value: false}), Buttons.Push(b)
     return b
 }
 
 OnMouseMove(wParam, lParam, msg, hwnd) {
-    static LastHwnd := 0
-    if (hwnd = LastHwnd) {
-        return
-    }
-    LastHwnd := hwnd
-
-    SetTimer(ShowDelayedToolTip, 0)
-    ToolTip() 
-
     for b in Buttons {
         if (b.Hwnd == hwnd) {
-            if !b.IsHovered {
+            if !b.IsHovered
                 b.Opt("Background" Color_Hover), b.Redraw(), b.IsHovered := true
-            }
-        } else if (b.IsHovered) {
+        } else if (b.IsHovered)
             b.Opt("Background" Color_Btn), b.Redraw(), b.IsHovered := false
-        }
-    }
-
-    if Tooltips.Has(hwnd) {
-        global PendingToolTipText := Tooltips[hwnd]
-        SetTimer(ShowDelayedToolTip, -800)
     }
 }
 
-ShowDelayedToolTip() {
-    ToolTip(PendingToolTipText)
+ToggleAllMods(*) {
+    static allChecked := false
+    allChecked := !allChecked, LV.Opt("-Redraw")
+    Loop LV.GetCount()
+        LV.Modify(A_Index, (allChecked ? "Check" : "-Check"))
+    LV.Opt("+Redraw"), UpdateCounts()
+}
+
+ResetAllPriority(*) {
+    LV.Opt("-Redraw")
+    Loop LV.GetCount()
+        LV.Modify(A_Index, "Col4", "0")
+    LV.Opt("+Redraw")
+}
+
+ClearCache(*) {
+    targetFolders := ["logs", "vmz_mount_cache", "shader_cache", "vulkan", "modloader_hooks"]
+    targetFiles := ["modloader_filescope.log", "mod_pass_state.cfg"]
+    for folder in targetFolders {
+        p := AppDataFolder "\" folder
+        if (DirExist(p))
+            try DirDelete(p, 1)
+    }
+    for file in targetFiles {
+        p := AppDataFolder "\" file
+        if (FileExist(p))
+            try FileDelete(p)
+    }
+    MsgBox("Cache cleared.")
+}
+
+UpdateCounts() {
+    total := LV.GetCount(), enabled := 0
+    loop total
+        if (SendMessage(0x102C, A_Index-1, 0xF000, LV.Hwnd) >> 12 == 2)
+            enabled++
+    StatusText.Value := "Total Mods: " total " | Enabled: " enabled
 }
